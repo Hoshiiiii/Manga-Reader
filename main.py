@@ -2,7 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtCore import QSize
 
-from PyQt5.QtWidgets import QMainWindow,QApplication, QWidget, QScrollArea, QGridLayout, QGroupBox, QLabel, QPushButton, QFormLayout
+from PyQt5.QtWidgets import QMainWindow,QApplication, QWidget, QScrollArea, QGridLayout, QGroupBox, QLabel, QPushButton, QFormLayout,QMessageBox
 import sys
 import textwrap
 from bs4 import BeautifulSoup as bs
@@ -25,8 +25,6 @@ class Window(QMainWindow):
       self.site = []
       self.img = []
       self.chaps = []
-      self.main_label1 = QLabel()
-      self.main_label2 = QLabel()
       soupConc = ["a",{"class":"manga_title text-truncate"},'img',]
       for cnt in self.soup.find_all(soupConc):
           if cnt.has_attr('class') and "text-truncate" in cnt['class']:
@@ -42,7 +40,8 @@ class Window(QMainWindow):
       for x in range(len(self.title)):
           self.title[x]+= self.chaps[x]
 
-
+                       
+        
     def __init__(self):
         super().__init__()
         self.slut_start()
@@ -55,6 +54,7 @@ class Window(QMainWindow):
         self.resize(self.user.GetSystemMetrics(0), self.user.GetSystemMetrics(1))
         self.main_label1 = QtWidgets.QLabel(self.centralwidget)
         self.main_label2 = QtWidgets.QLabel(self.centralwidget)
+        self.summary_button = QtWidgets.QPushButton(self.centralwidget)
 
         layout = QtWidgets.QHBoxLayout(self)
         scrollArea = QtWidgets.QScrollArea(self)
@@ -70,7 +70,7 @@ class Window(QMainWindow):
         imgList = []
         titleList = []
 
-        for i in  range(len(self.img)):
+        for i in  range(10):
             F = QtWidgets.QLabel(self.centralwidget)
 
             img = QImage()
@@ -83,28 +83,40 @@ class Window(QMainWindow):
             imgList.append(F)
             gridLayout.addWidget(titleList[i], i, 1)
             gridLayout.addWidget(F, i, 0)
-            titleList[i].mousePressEvent = functools.partial(self.print_some, site=self.site[i])
+            titleList[i].mousePressEvent = functools.partial(self.label_events, site=self.site[i])
 
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
-    def print_some(self, event, site=None):
+    def label_events(self, event, site=None):
         url = site
         content = requests.get(url)
         soup = bs(content.content,'html.parser')
         title = soup.find("meta",  property="og:title")
         desc = soup.find("meta",  property="og:description")
         image = soup.find("img",{"class":"rounded"})
-
-        self.main_label2.setGeometry(QtCore.QRect(int(self.frameGeometry().width() /4),0,600,400))
+        
         img = QImage()
         data = urlopen(image["src"]).read()
         img.loadFromData(data)
-        self.main_label2.setPixmap(QPixmap(img))
-
+        img = img.scaled(600,400)
         
-        self.main_label1.setText(textwrap.fill(desc["content"], 100))
-        self.main_label1.setGeometry(QtCore.QRect(int(self.frameGeometry().width() /4),100,300,200))
+        self.main_label2.setPixmap(QPixmap(img).copy())
+        self.main_label2.setGeometry(QtCore.QRect(int(self.width()/4),0,600,400))
+        
+        self.summary_button.setText("View Summary")
+        self.summary_button.setGeometry(QtCore.QRect(int(self.width()/4),400,100,50))
+        self.summary_button.mousePressEvent = functools.partial(self.popup_message, message=desc["content"])
+
+    def popup_message(self,event,message):
+        msg = QMessageBox()
+        msg.setWindowTitle("Manga Summary")
+
+        msg.setText(' '.join(message.split()))
+        x = msg.exec_()  # this will show our messagebox
+        
+        
+
 
 App = QApplication(sys.argv)
 window = Window()
