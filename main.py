@@ -1,8 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtCore import QSize
-
-from PyQt5.QtWidgets import QMainWindow,QApplication, QWidget, QScrollArea, QGridLayout, QGroupBox, QLabel, QPushButton, QFormLayout,QMessageBox
+from PyQt5.QtWidgets import QMainWindow,QApplication, QWidget, QScrollArea, QVBoxLayout,QStackedWidget,QGridLayout, QGroupBox, QLabel, QPushButton, QFormLayout,QToolBox,QMessageBox,QTabWidget
 import sys
 import textwrap
 from bs4 import BeautifulSoup as bs
@@ -11,9 +10,10 @@ import time
 from urllib.request import urlopen
 import ctypes
 import functools
+from PyQt5.QtCore import pyqtSlot
 
 start = time.time()
-
+            
 class Window(QMainWindow):
 
     def slut_start(self):
@@ -30,16 +30,12 @@ class Window(QMainWindow):
           if cnt.has_attr('class') and "text-truncate" in cnt['class']:
               if len(cnt['class']) > 1 and cnt['class'][0] == 'manga_title':
                   self.site.append("https://mangadex.org" + cnt["href"])
-                  '''if len(cnt["title"]) > 20:
+                  if len(cnt["title"]) > 20:
                       cnt["title"] = cnt["title"][0:20] + "\n" + cnt["title"][21:len(cnt["title"])]
-                      print(cnt["title"])
-                      continue'''
+                      continue
                   self.title.append(cnt["title"] + "\n")
           elif cnt.has_attr('alt') and cnt["src"][:13] == "/images/manga":
               self.img.append("https://mangadex.org" + cnt["src"])
-
-
-
 
 
     def __init__(self):
@@ -51,6 +47,7 @@ class Window(QMainWindow):
         self.centralwidget.setObjectName("centralwidget")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
         self.setWindowTitle("Manga Reader")
+        self.setStyleSheet("background-color: grey;")
         self.resize(self.user.GetSystemMetrics(0), self.user.GetSystemMetrics(1))
         self.main_label1 = QtWidgets.QLabel(self.centralwidget)
         self.main_label2 = QtWidgets.QLabel(self.centralwidget)
@@ -64,7 +61,6 @@ class Window(QMainWindow):
         
 
         scrollArea.setWidget(scrollAreaWidgetContents)
-        self.gridLayout2 = QtWidgets.QGridLayout(scrollAreaWidgetContents)
         layout.addWidget(scrollArea)
         layout.setGeometry(QtCore.QRect(0,0,int(self.frameGeometry().width()),self.frameGeometry().height()))
         imgList = []
@@ -73,7 +69,9 @@ class Window(QMainWindow):
         title_hCounter = 0
         photo_vCounter = 1
         photo_hCounter = 0
-        for i in  range(20):
+
+
+        for i in  range(len(self.title)):
             F = QtWidgets.QLabel(self.centralwidget)
 
             img = QImage()
@@ -82,26 +80,37 @@ class Window(QMainWindow):
             img = img.scaled(100,150)
             F.setPixmap(QPixmap(img))
 
-            titleList.append(QLabel(self.title[i]))
+            label_title = QLabel()
+            label_title.setStyleSheet("QLabel { color : white; }");
+            label_title.setText(self.title[i])
+            titleList.append(label_title)
             imgList.append(F)
-
-            if title_hCounter >= 4:
+            gridLayout.setRowStretch(i,1000)
+            if title_hCounter >= 8:
                 title_vCounter += 2
                 photo_vCounter += 2
                 title_hCounter , photo_hCounter = 0,0
                 
             gridLayout.addWidget(titleList[i],title_vCounter,title_hCounter)
 
-            gridLayout.addWidget(F, photo_vCounter, photo_hCounter)
+            gridLayout.addWidget(imgList[i], photo_vCounter, photo_hCounter)
 
             title_hCounter +=1
             photo_hCounter += 1
 
-            #titleList[i].mousePressEvent = functools.partial(self.label_events, site=self.site[i])
+            titleList[i].mousePressEvent = functools.partial(self.label_event2, F=imgList[i])
 
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
+        
+    def label_event2(self, event, F=None):
+            img = QImage()
+            data = urlopen(self.img[5]).read()
+            img.loadFromData(data)
+            img = img.scaled(100,150)
+            
+            F.setPixmap(QPixmap(img))
     def label_events(self, event, site=None):
         url = site
         content = requests.get(url)
