@@ -7,41 +7,43 @@ import textwrap
 from bs4 import BeautifulSoup as bs
 import requests
 import time
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 import ctypes
 import functools
 from PyQt5.QtCore import pyqtSlot
 
 start = time.time()
-            
+
+
+
+           
 class Window(QMainWindow):
 
     def slut_start(self):
       self.user = ctypes.windll.user32
-      self.url = "https://mangadex.org/updates"
-      self.content = requests.get(self.url)
-      self.soup = bs(self.content.content,'html.parser')
+
       self.title = []
       self.site = []
       self.img = []
       self.chaps = []
-      soupConc = ["a",{"class":"manga_title text-truncate"},'img',]
-      for cnt in self.soup.find_all(soupConc):
-          if cnt.has_attr('class') and "text-truncate" in cnt['class']:
-              if len(cnt['class']) > 1 and cnt['class'][0] == 'manga_title':
-                  self.site.append("https://mangadex.org" + cnt["href"])
-                  if len(cnt["title"]) > 20:
-                      cnt["title"] = cnt["title"][0:20] + "\n" + cnt["title"][21:len(cnt["title"])]
-                      continue
-                  self.title.append(cnt["title"] + "\n")
-          elif cnt.has_attr('alt') and cnt["src"][:13] == "/images/manga":
-              self.img.append("https://mangadex.org" + cnt["src"])
+      url = "https://m.mangairo.com/manga-list/type-latest/ctg-all/state-all/page-1"
+      content = requests.get(url)
+      soup = bs(content.content,'html.parser')
+
+      for cnt in soup.find_all("a",{"class": "tooltip"}):
+        if cnt.img != None:
+            self.img.append(cnt.img["src"])
+            if len(cnt.img["alt"]) < 10:
+                self.title.append(cnt.img["alt"])
+                continue
+            #newTitle = cnt.img["alt"][0:10] + "\n" + cnt.img["alt"][10:len(cnt.img["alt"])]
+            newTitle = cnt.img["alt"][0:10]
+            self.title.append(newTitle)
 
 
     def __init__(self):
         super().__init__()
         self.slut_start()
-
         self.user = ctypes.windll.user32
         self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setObjectName("centralwidget")
@@ -59,7 +61,6 @@ class Window(QMainWindow):
         scrollAreaWidgetContents = QtWidgets.QWidget()
         gridLayout = QtWidgets.QGridLayout(scrollAreaWidgetContents)
         
-
         scrollArea.setWidget(scrollAreaWidgetContents)
         layout.addWidget(scrollArea)
         layout.setGeometry(QtCore.QRect(0,0,int(self.frameGeometry().width()),self.frameGeometry().height()))
@@ -69,28 +70,29 @@ class Window(QMainWindow):
         title_hCounter = 0
         photo_vCounter = 1
         photo_hCounter = 0
-
-
-        for i in  range(len(self.title)):
+        gridLayout.adjustSize()
+        for i in  range(10):
             F = QtWidgets.QLabel(self.centralwidget)
-
             img = QImage()
-            data = urlopen(self.img[i]).read()
+            req = Request(self.img[i], headers={'User-Agent': 'Mozilla/5.0'})
+            data = urlopen(req).read()
             img.loadFromData(data)
             img = img.scaled(100,150)
             F.setPixmap(QPixmap(img))
 
-            label_title = QLabel()
+            label_title = QPushButton(self)
             label_title.setStyleSheet("QLabel { color : white; }");
-            label_title.setText(self.title[i])
+            label_title.adjustSize()
             titleList.append(label_title)
             imgList.append(F)
-            gridLayout.setRowStretch(i,1000)
+
+            gridLayout.setRowStretch(i,200)
+            
             if title_hCounter >= 8:
                 title_vCounter += 2
                 photo_vCounter += 2
                 title_hCounter , photo_hCounter = 0,0
-                
+
             gridLayout.addWidget(titleList[i],title_vCounter,title_hCounter)
 
             gridLayout.addWidget(imgList[i], photo_vCounter, photo_hCounter)
@@ -98,19 +100,15 @@ class Window(QMainWindow):
             title_hCounter +=1
             photo_hCounter += 1
 
+            titleList[i].setText(self.title[i])
             titleList[i].mousePressEvent = functools.partial(self.label_event2, F=imgList[i])
 
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
-        
     def label_event2(self, event, F=None):
-            img = QImage()
-            data = urlopen(self.img[5]).read()
-            img.loadFromData(data)
-            img = img.scaled(100,150)
-            
-            F.setPixmap(QPixmap(img))
+        F.setPixmap(QPixmap(""))
+
     def label_events(self, event, site=None):
         url = site
         content = requests.get(url)
