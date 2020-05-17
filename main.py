@@ -4,7 +4,7 @@ from PyQt5.QtCore import QSize,pyqtSlot
 from PyQt5.QtWidgets import QMainWindow,QApplication, QWidget, QScrollArea, QVBoxLayout,QStackedWidget,QLineEdit,QGridLayout, QGroupBox, QLabel, QPushButton, QFormLayout,QToolBox,QMessageBox,QTabWidget
 from bs4 import BeautifulSoup as bs
 from urllib.request import Request, urlopen
-from get_mangainfo import get_latest,get_popular
+from get_mangainfo import get_latest,get_popular, get_search
 import ctypes, functools,requests, time,sys
 start = time.time()
 
@@ -16,7 +16,7 @@ class Window(QMainWindow):
         super().__init__()
         latest_images, latest_titles = get_latest()
         popular_images, popular_titles = get_popular()
-
+        search_images, search_titles,search_site,search_details = get_search("Kimetsu")
         self.user = ctypes.windll.user32
         
 
@@ -35,57 +35,37 @@ class Window(QMainWindow):
         scrollAreaWidgetContents = QtWidgets.QWidget()
         gridLayout = QtWidgets.QGridLayout(scrollAreaWidgetContents)
         scrollArea.setWidget(scrollAreaWidgetContents)
-
         layout.addWidget(scrollArea)
         layout.setGeometry(QtCore.QRect(0,0,int(self.frameGeometry().width()),self.frameGeometry().height()))
         
         #Variable declartion for properties
         horizontal_space = 100
-        searchbox_size = [100,20]
         gridLayout.setHorizontalSpacing(horizontal_space)
-        #Main Widgets
-        searchBox = QLineEdit(self)
-        searchBox.setStyleSheet("background-color: white;")
-        searchBox.setGeometry(self.user.GetSystemMetrics(0) - 200,10,searchbox_size[0],searchbox_size[1])
-
-        search_button = QPushButton(self)
-        search_button.setStyleSheet("background-color:white;");
-        search_button.setFixedSize(50,20)
-        search_button.setGeometry(self.user.GetSystemMetrics(0) - 80,10,0,0)
-
-        popular,latest = self.buttons_init()
-        #Main
+        #Setting the main widgets through functions
+        popular,latest,search_box,search_button = self.buttons_init()
+        #Main - Load resources
         latest_titleList, latest_imageList = self.load_resources(20,latest_images,latest_titles)
-        popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
-
-        #self.apply_resources(20,latest_titleList,latest_imageList,gridLayout)
-        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,latest_titleList,latest_imageList))
-        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList))
+        #popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
+        #Main - Apply Resources
+        list1,list2 = [],[]
+        self.apply_resources(20,latest_imageList,latest_titleList,gridLayout,list1,list2)
+        
+        #Setting up for button clicks
+        search_button.clicked.connect(functools.partial(self.load_search_resources,len(search_titles),search_images,search_titles,gridLayout,latest_titleList,latest_imageList))
+        #popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,latest_titleList,latest_imageList))
+        #latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList))
 
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
-    def buttons_init(self):
-        popular = QPushButton(self)
-        popular.setStyleSheet("background-color:white;");
-        popular.setFixedSize(50,20)
-        popular.setGeometry(0,10,0,0)
-        popular.setText("Popular Button")        
 
-        latest = QPushButton(self)
-        latest.setStyleSheet("background-color:white;");
-        latest.setFixedSize(50,20)
-        latest.setGeometry(100,10,0,0)
-        latest.setText("Latest Button")
-
-        return popular,latest
     def loadImage(self,image_url):
-            img = QImage()
-            req = Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
-            data = urlopen(req).read()
-            img.loadFromData(data)  
-            img = img.scaled(100,150)
-            return img
+        img = QImage()
+        req = Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+        data = urlopen(req).read()
+        img.loadFromData(data)  
+        img = img.scaled(100,150)
+        return img
 
     def localImage(self,source,label,scaleW,scaleH):
         pixmap = QPixmap(source)
@@ -118,17 +98,36 @@ class Window(QMainWindow):
             titleList[i].setText(titles[i])
             image_label.setPixmap(QPixmap(img))
         return titleList, imgList
+    def load_search_resources(self,num_loops,images,titles,gridLayout,clear_label,clear_img):
+        titleList,imgList = [],[]
+        title_size = [100,50]
 
+        for i in  range(num_loops):
+            #Loading image
+            image_label = QtWidgets.QLabel(self.centralwidget)
+            img = self.loadImage(images[i])
+            img = img.scaled(100,150)
+            #Setting button properties
+            label_title = QPushButton()
+            label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
+            label_title.setFixedSize(title_size[0],title_size[1])
+            #Adding widgets to a list
+            titleList.append(label_title)
+            imgList.append(image_label)
+            #Applying image and text
+            titleList[i].setText(titles[i])
+            image_label.setPixmap(QPixmap(img))
+        self.apply_resources(num_loops,titleList,imgList,gridLayout,clear_label,clear_img)
+        return titleList, imgList
         #popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
     def apply_resources(self,num_loops,titleList,imgList,gridLayout,clear_label,clear_img):
-        print("F")
         for x in range(len(clear_label)):
             clear_label[x].hide()
             clear_img[x].hide()
         #Declaring variables for layout properties
         photo_horizontal, title_horizontal = 0,0,
-        title_vertical = 10
-        photo_vertical = 11
+        title_vertical = 1
+        photo_vertical = 2
         rowcol_stretch = 100
 
         for i in  range(num_loops):
@@ -149,7 +148,33 @@ class Window(QMainWindow):
 
             title_horizontal += 1
             photo_horizontal += 1
+    def load_search(self,search_input):
+        print("press f")
+        print(search_input.text())     
+    def buttons_init(self):
+        searchbox_size = [100,20]
 
+        popular = QPushButton(self)
+        popular.setStyleSheet("background-color:white;");
+        popular.setFixedSize(50,20)
+        popular.setGeometry(0,10,0,0)
+        popular.setText("Popular Button")        
+
+        latest = QPushButton(self)
+        latest.setStyleSheet("background-color:white;");
+        latest.setFixedSize(50,20)
+        latest.setGeometry(100,10,0,0)
+        latest.setText("Latest Button")
+
+        searchBox = QLineEdit(self)
+        searchBox.setStyleSheet("background-color: green;")
+        searchBox.setGeometry(self.user.GetSystemMetrics(0) - 200,10,searchbox_size[0],searchbox_size[1])
+
+        search_button = QPushButton(self)
+        search_button.setStyleSheet("background-color:white;");
+        search_button.setFixedSize(50,20)
+        search_button.setGeometry(self.user.GetSystemMetrics(0) - 80,10,0,0)
+        return popular,latest,searchBox,search_button
 
 App = QApplication(sys.argv)
 window = Window()

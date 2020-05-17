@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup as bs
 import requests
-
+import re
 def get_latest():
 
   title = []
@@ -40,4 +40,24 @@ def get_popular():
         continue
         
   return img,title
+def get_search(search_input):
+  title = []
+  site = []
+  img = []
+  details = []
+  url = "https://m.mangairo.com/search/" + search_input.replace(" ", "_")
+  content = requests.get(url)
+  soup = bs(content.content,'html.parser')
+  for cnt in soup.find_all("div", {"class":"story-item"}):
+    site.append(cnt.a["href"])
+    img.append(cnt.img["src"])
+    title.append(cnt.img["alt"])
+    if cnt.find("span") :
+      word = cnt.text
+      word  = re.sub(r'\n+', '\n',word)
+      details.append(word)
+    return img,title,site,details
+
+
+
 
