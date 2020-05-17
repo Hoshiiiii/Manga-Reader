@@ -1,17 +1,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
-from PyQt5.QtCore import QSize
+from PyQt5.QtCore import QSize,pyqtSlot
 from PyQt5.QtWidgets import QMainWindow,QApplication, QWidget, QScrollArea, QVBoxLayout,QStackedWidget,QLineEdit,QGridLayout, QGroupBox, QLabel, QPushButton, QFormLayout,QToolBox,QMessageBox,QTabWidget
-import sys
-import textwrap
 from bs4 import BeautifulSoup as bs
-import requests
-import time
 from urllib.request import Request, urlopen
-import ctypes
-import functools
-from PyQt5.QtCore import pyqtSlot
-from get_mangainfo import gather_info
+from get_mangainfo import get_latest,get_popular
+import ctypes, functools,requests, time,sys
 start = time.time()
 
 
@@ -20,10 +14,11 @@ start = time.time()
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-        images, titles = gather_info()
+        latest_images, latest_titles = get_latest()
+        popular_images, popular_titles = get_popular()
+
         self.user = ctypes.windll.user32
         
-        self.user = ctypes.windll.user32
 
         #Setting up Main Window Properties
         self.centralwidget = QtWidgets.QWidget(self)
@@ -40,22 +35,26 @@ class Window(QMainWindow):
         scrollAreaWidgetContents = QtWidgets.QWidget()
         gridLayout = QtWidgets.QGridLayout(scrollAreaWidgetContents)
         scrollArea.setWidget(scrollAreaWidgetContents)
+
         layout.addWidget(scrollArea)
         layout.setGeometry(QtCore.QRect(0,0,int(self.frameGeometry().width()),self.frameGeometry().height()))
         
         #Variable declartion for properties
         horizontal_space = 100
-        searchbox_size = [240,40]
+        searchbox_size = [100,20]
         gridLayout.setHorizontalSpacing(horizontal_space)
-        
+        #Searchbox and buttons
         searchBox = QLineEdit(self)
-        searchBox.resize(searchbox_size[0],searchbox_size[1])
         searchBox.setStyleSheet("background-color: white;")
-        gridLayout.addWidget(searchBox,0,0)
-        
-        self.arrange_latest(20,images,titles,gridLayout)
+        searchBox.setGeometry(self.user.GetSystemMetrics(0) - 200,10,searchbox_size[0],searchbox_size[1])
 
+        search_button = QPushButton(self)
+        search_button.setStyleSheet("background-color:white;");
+        search_button.setFixedSize(50,20)
+        search_button.setGeometry(self.user.GetSystemMetrics(0) - 80,10,0,0)
 
+        #Main
+        self.load_resources(20,latest_images,latest_titles,gridLayout,popular_images)
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
 
@@ -81,8 +80,17 @@ class Window(QMainWindow):
         msg.setText(' '.join(message.split()))
         x = msg.exec_()  # this will show our messagebox
 
-
-    def arrange_latest(self,num_loops,images,titles,gridLayout):
+    def on_click(self,num_loops,images,imgList):
+        for x in range(num_loops):
+            imgList[x].setPixmap(QPixmap(self.loadImage(images[x])))
+            
+        
+    def load_resources(self,num_loops,images,titles,gridLayout,popular_images):
+        popular = QPushButton(self)
+        popular.setStyleSheet("background-color:white;");
+        popular.setFixedSize(50,20)
+        popular.setGeometry(0,10,0,0)
+        
         titleList,imgList = [],[]
         photo_horizontal, title_horizontal = 0,0,
         title_vertical = 2
@@ -91,8 +99,7 @@ class Window(QMainWindow):
         rowcol_stretch = 100
         for i in  range(num_loops):
                 F = QtWidgets.QLabel(self.centralwidget)
-                img = self.loadImage(images[i])
-                F.setPixmap(QPixmap(img))
+                F.setPixmap(QPixmap(self.loadImage(images[i])))
 
                 label_title = QPushButton(self)
                 label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
@@ -116,7 +123,9 @@ class Window(QMainWindow):
                 photo_horizontal += 1
 
                 titleList[i].setText(titles[i])
+
                 #titleList[i].mousePressEvent = functools.partial(self.label_event2, F=imgList[i])
+        popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
 
 App = QApplication(sys.argv)
 window = Window()
