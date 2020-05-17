@@ -11,106 +11,54 @@ from urllib.request import Request, urlopen
 import ctypes
 import functools
 from PyQt5.QtCore import pyqtSlot
-
+from get_mangainfo import gather_info
 start = time.time()
 
 
 
            
 class Window(QMainWindow):
-
-    def slut_start(self):
-      self.user = ctypes.windll.user32
-
-      self.title = []
-      self.site = []
-      self.img = []
-      self.chaps = []
-      url = "https://m.mangairo.com/manga-list/type-latest/ctg-all/state-all/page-1"
-      content = requests.get(url)
-      soup = bs(content.content,'html.parser')
-
-      for cnt in soup.find_all("a",{"class": "tooltip"}):
-        if cnt.img != None:
-            self.img.append(cnt.img["src"])
-            if len(cnt.img["alt"]) < 18:
-                self.title.append(cnt.img["alt"])
-                continue
-            elif " " in cnt.img["alt"][17:len(cnt.img["alt"])]:
-                index = cnt.img["alt"][17:len(cnt.img["alt"])].index(" ")
-                #print("index {} on {}".format(index,cnt.img["alt"][17:len(cnt.img["alt"])]))
-            newTitle = cnt.img["alt"][0:17+index] + "\n" + cnt.img["alt"][17+index:len(cnt.img["alt"])]
-            self.title.append(newTitle)
-
-
     def __init__(self):
         super().__init__()
-        self.slut_start()
+        images, titles = gather_info()
         self.user = ctypes.windll.user32
+        
+        self.user = ctypes.windll.user32
+
+        #Setting up Main Window Properties
         self.centralwidget = QtWidgets.QWidget(self)
         self.centralwidget.setObjectName("centralwidget")
         self.setWindowIcon(QtGui.QIcon("icon.png"))
         self.setWindowTitle("Manga Reader")
         self.setStyleSheet("background-color: grey;")
-        
         self.resize(self.user.GetSystemMetrics(0), self.user.GetSystemMetrics(1))
-        self.main_label1 = QtWidgets.QLabel(self.centralwidget)
-        self.main_label2 = QtWidgets.QLabel(self.centralwidget)
-        self.summary_button = QtWidgets.QLabel(self.centralwidget)
-        self.chapList_button = QtWidgets.QLabel(self.centralwidget)
-
         
+        #Setting up Layout and Scroll area properties
         layout = QtWidgets.QHBoxLayout(self)
         scrollArea = QtWidgets.QScrollArea(self)
         scrollArea.setWidgetResizable(True)
         scrollAreaWidgetContents = QtWidgets.QWidget()
         gridLayout = QtWidgets.QGridLayout(scrollAreaWidgetContents)
-        
         scrollArea.setWidget(scrollAreaWidgetContents)
         layout.addWidget(scrollArea)
         layout.setGeometry(QtCore.QRect(0,0,int(self.frameGeometry().width()),self.frameGeometry().height()))
-        imgList, titleList = [], []
-        photo_hCounter, title_hCounter = 0,0,
-        title_vCounter = 2
-        photo_vCounter = 3
         
-        gridLayout.setHorizontalSpacing(20)
+        #Variable declartion for properties
+        horizontal_space = 100
+        searchbox_size = [240,40]
+        gridLayout.setHorizontalSpacing(horizontal_space)
         
         searchBox = QLineEdit(self)
-        searchBox.resize(280,40)
+        searchBox.resize(searchbox_size[0],searchbox_size[1])
         searchBox.setStyleSheet("background-color: white;")
         gridLayout.addWidget(searchBox,0,0)
-        for i in  range(20):
-            F = QtWidgets.QLabel(self.centralwidget)
-            img = self.loadImage(self.img[i])
-            F.setPixmap(QPixmap(img))
+        
+        self.arrange_latest(20,images,titles,gridLayout)
 
-            label_title = QPushButton(self)
-            label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
-            label_title.setFixedSize(100,50)
-            titleList.append(label_title)
-            imgList.append(F)
-
-            gridLayout.setRowStretch(i,100)
-            gridLayout.setColumnStretch(i,100)
-
-            if title_hCounter >= 10:
-                title_vCounter += 2
-                photo_vCounter += 2
-                title_hCounter , photo_hCounter = 0,0
-
-            gridLayout.addWidget(titleList[i],title_vCounter,title_hCounter)
-
-            gridLayout.addWidget(imgList[i], photo_vCounter, photo_hCounter)
-
-            title_hCounter += 1
-            photo_hCounter += 1
-
-            titleList[i].setText(self.title[i])
-            #titleList[i].mousePressEvent = functools.partial(self.label_event2, F=imgList[i])
 
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
+
         self.show()
         
     def loadImage(self,image_url):
@@ -134,7 +82,41 @@ class Window(QMainWindow):
         x = msg.exec_()  # this will show our messagebox
 
 
+    def arrange_latest(self,num_loops,images,titles,gridLayout):
+        titleList,imgList = [],[]
+        photo_horizontal, title_horizontal = 0,0,
+        title_vertical = 2
+        photo_vertical = 3
+        title_size = [100,50]
+        rowcol_stretch = 100
+        for i in  range(num_loops):
+                F = QtWidgets.QLabel(self.centralwidget)
+                img = self.loadImage(images[i])
+                F.setPixmap(QPixmap(img))
 
+                label_title = QPushButton(self)
+                label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
+                label_title.setFixedSize(title_size[0],title_size[1])
+                titleList.append(label_title)
+                imgList.append(F)
+
+                gridLayout.setRowStretch(i,rowcol_stretch)
+                gridLayout.setColumnStretch(i,rowcol_stretch)
+
+                if title_horizontal >= 5:
+                    title_vertical += 2
+                    photo_vertical += 2
+                    title_horizontal , photo_horizontal = 0,0
+
+                gridLayout.addWidget(titleList[i],title_vertical,title_horizontal)
+
+                gridLayout.addWidget(imgList[i], photo_vertical, photo_horizontal)
+
+                title_horizontal += 1
+                photo_horizontal += 1
+
+                titleList[i].setText(titles[i])
+                #titleList[i].mousePressEvent = functools.partial(self.label_event2, F=imgList[i])
 
 App = QApplication(sys.argv)
 window = Window()
