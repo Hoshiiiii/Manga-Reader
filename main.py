@@ -59,8 +59,8 @@ class Window(QMainWindow):
         popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
 
         #self.apply_resources(20,latest_titleList,latest_imageList,gridLayout)
-        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout))
-        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout))
+        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,latest_titleList,latest_imageList))
+        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList))
 
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
@@ -120,7 +120,11 @@ class Window(QMainWindow):
         return titleList, imgList
 
         #popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
-    def apply_resources(self,num_loops,titleList,imgList,gridLayout):
+    def apply_resources(self,num_loops,titleList,imgList,gridLayout,clear_label,clear_img):
+        print("F")
+        for x in range(len(clear_label)):
+            clear_label[x].hide()
+            clear_img[x].hide()
         #Declaring variables for layout properties
         photo_horizontal, title_horizontal = 0,0,
         title_vertical = 10
@@ -139,6 +143,9 @@ class Window(QMainWindow):
             gridLayout.addWidget(titleList[i],title_vertical,title_horizontal)
 
             gridLayout.addWidget(imgList[i], photo_vertical, photo_horizontal)
+
+            titleList[i].show()
+            imgList[i].show()
 
             title_horizontal += 1
             photo_horizontal += 1
