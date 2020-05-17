@@ -43,7 +43,7 @@ class Window(QMainWindow):
         horizontal_space = 100
         searchbox_size = [100,20]
         gridLayout.setHorizontalSpacing(horizontal_space)
-        #Searchbox and buttons
+        #Main Widgets
         searchBox = QLineEdit(self)
         searchBox.setStyleSheet("background-color: white;")
         searchBox.setGeometry(self.user.GetSystemMetrics(0) - 200,10,searchbox_size[0],searchbox_size[1])
@@ -53,13 +53,32 @@ class Window(QMainWindow):
         search_button.setFixedSize(50,20)
         search_button.setGeometry(self.user.GetSystemMetrics(0) - 80,10,0,0)
 
+        popular,latest = self.buttons_init()
         #Main
-        self.load_resources(20,latest_images,latest_titles,gridLayout,popular_images)
+        latest_titleList, latest_imageList = self.load_resources(20,latest_images,latest_titles)
+        popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
+
+        #self.apply_resources(20,latest_titleList,latest_imageList,gridLayout)
+        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout))
+        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout))
+
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
-
         self.show()
-        
+    def buttons_init(self):
+        popular = QPushButton(self)
+        popular.setStyleSheet("background-color:white;");
+        popular.setFixedSize(50,20)
+        popular.setGeometry(0,10,0,0)
+        popular.setText("Popular Button")        
+
+        latest = QPushButton(self)
+        latest.setStyleSheet("background-color:white;");
+        latest.setFixedSize(50,20)
+        latest.setGeometry(100,10,0,0)
+        latest.setText("Latest Button")
+
+        return popular,latest
     def loadImage(self,image_url):
             img = QImage()
             req = Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -67,65 +86,63 @@ class Window(QMainWindow):
             img.loadFromData(data)  
             img = img.scaled(100,150)
             return img
+
     def localImage(self,source,label,scaleW,scaleH):
         pixmap = QPixmap(source)
         label.setFixedSize(scaleW,scaleH)
         label.setPixmap(pixmap)
         return label
-        
-    def popup_message(self,event,message):
-        msg = QMessageBox()
-        msg.setWindowTitle("Manga Summary")
-
-        msg.setText(' '.join(message.split()))
-        x = msg.exec_()  # this will show our messagebox
 
     def on_click(self,num_loops,images,imgList):
         for x in range(num_loops):
             imgList[x].setPixmap(QPixmap(self.loadImage(images[x])))
             
         
-    def load_resources(self,num_loops,images,titles,gridLayout,popular_images):
-        popular = QPushButton(self)
-        popular.setStyleSheet("background-color:white;");
-        popular.setFixedSize(50,20)
-        popular.setGeometry(0,10,0,0)
-        
+    def load_resources(self,num_loops,images,titles):
         titleList,imgList = [],[]
-        photo_horizontal, title_horizontal = 0,0,
-        title_vertical = 2
-        photo_vertical = 3
         title_size = [100,50]
-        rowcol_stretch = 100
+
         for i in  range(num_loops):
-                F = QtWidgets.QLabel(self.centralwidget)
-                F.setPixmap(QPixmap(self.loadImage(images[i])))
+            #Loading image
+            image_label = QtWidgets.QLabel(self.centralwidget)
+            img = self.loadImage(images[i])
+            img = img.scaled(100,150)
+            #Setting button properties
+            label_title = QPushButton()
+            label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
+            label_title.setFixedSize(title_size[0],title_size[1])
+            #Adding widgets to a list
+            titleList.append(label_title)
+            imgList.append(image_label)
+            #Applying image and text
+            titleList[i].setText(titles[i])
+            image_label.setPixmap(QPixmap(img))
+        return titleList, imgList
 
-                label_title = QPushButton(self)
-                label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
-                label_title.setFixedSize(title_size[0],title_size[1])
-                titleList.append(label_title)
-                imgList.append(F)
+        #popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
+    def apply_resources(self,num_loops,titleList,imgList,gridLayout):
+        #Declaring variables for layout properties
+        photo_horizontal, title_horizontal = 0,0,
+        title_vertical = 10
+        photo_vertical = 11
+        rowcol_stretch = 100
 
-                gridLayout.setRowStretch(i,rowcol_stretch)
-                gridLayout.setColumnStretch(i,rowcol_stretch)
+        for i in  range(num_loops):
 
-                if title_horizontal >= 5:
-                    title_vertical += 2
-                    photo_vertical += 2
-                    title_horizontal , photo_horizontal = 0,0
+            gridLayout.setRowStretch(i,150)
+            gridLayout.setColumnStretch(i,100)
+            if title_horizontal >= 5:
+                title_vertical += 2
+                photo_vertical += 2
+                title_horizontal , photo_horizontal = 0,0
 
-                gridLayout.addWidget(titleList[i],title_vertical,title_horizontal)
+            gridLayout.addWidget(titleList[i],title_vertical,title_horizontal)
 
-                gridLayout.addWidget(imgList[i], photo_vertical, photo_horizontal)
+            gridLayout.addWidget(imgList[i], photo_vertical, photo_horizontal)
 
-                title_horizontal += 1
-                photo_horizontal += 1
+            title_horizontal += 1
+            photo_horizontal += 1
 
-                titleList[i].setText(titles[i])
-
-                #titleList[i].mousePressEvent = functools.partial(self.label_event2, F=imgList[i])
-        popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
 
 App = QApplication(sys.argv)
 window = Window()
