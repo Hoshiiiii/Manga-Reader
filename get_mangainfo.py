@@ -56,7 +56,7 @@ def get_search(search_input):
       word = cnt.text
       word  = re.sub(r'\n+', '\n',word)
       details.append(word)
-    return img,title,site,details
+  return img,title,site,details
 
 
 

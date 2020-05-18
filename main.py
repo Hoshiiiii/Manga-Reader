@@ -44,17 +44,15 @@ class Window(QMainWindow):
         #Setting the main widgets through functions
         popular,latest,search_box,search_button = self.buttons_init()
         #Main - Load resources
-        latest_titleList, latest_imageList = self.load_resources(20,latest_images,latest_titles)
-        #popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
-        #Main - Apply Resources
         list1,list2 = [],[]
-        self.apply_resources(20,latest_imageList,latest_titleList,gridLayout,list1,list2)
+        latest_titleList, latest_imageList = self.load_resources(20,latest_images,latest_titles)
+        popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
+        search_titleList, search_imageList = self.load_resources(len(search_titles),search_images,search_titles)
         
         #Setting up for button clicks
-        search_button.clicked.connect(functools.partial(self.load_search_resources,len(search_titles),search_images,search_titles,gridLayout,latest_titleList,latest_imageList))
-        #popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,latest_titleList,latest_imageList))
-        #latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList))
-
+        search_button.clicked.connect(functools.partial(self.apply_resources,len(search_titles),search_titleList,search_imageList,gridLayout,latest_titleList,latest_imageList,popular_titleList,popular_imageList))
+        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,search_titleList,search_imageList,latest_titleList,latest_imageList))
+        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList,search_titleList,search_imageList))
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
@@ -72,10 +70,6 @@ class Window(QMainWindow):
         label.setFixedSize(scaleW,scaleH)
         label.setPixmap(pixmap)
         return label
-
-    def on_click(self,num_loops,images,imgList):
-        for x in range(num_loops):
-            imgList[x].setPixmap(QPixmap(self.loadImage(images[x])))
             
         
     def load_resources(self,num_loops,images,titles):
@@ -120,10 +114,13 @@ class Window(QMainWindow):
         self.apply_resources(num_loops,titleList,imgList,gridLayout,clear_label,clear_img)
         return titleList, imgList
         #popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
-    def apply_resources(self,num_loops,titleList,imgList,gridLayout,clear_label,clear_img):
+    def apply_resources(self,num_loops,titleList,imgList,gridLayout,clear_label,clear_img,clear_label2,clear_img2):
         for x in range(len(clear_label)):
             clear_label[x].hide()
-            clear_img[x].hide()
+            clear_img[x].hide()            
+        for x in range(len(clear_label2)):
+            clear_label2[x].hide()
+            clear_img2[x].hide()
         #Declaring variables for layout properties
         photo_horizontal, title_horizontal = 0,0,
         title_vertical = 1
