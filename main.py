@@ -50,9 +50,9 @@ class Window(QMainWindow):
         search_titleList, search_imageList = self.load_resources(len(search_titles),search_images,search_titles)
         
         #Setting up for button clicks
-        search_button.clicked.connect(functools.partial(self.apply_resources,len(search_titles),search_titleList,search_imageList,gridLayout,latest_titleList,latest_imageList,popular_titleList,popular_imageList))
+        #search_button.clicked.connect(functools.partial(self.apply_resources,len(search_titles),search_titleList,search_imageList,gridLayout,latest_titleList,latest_imageList,popular_titleList,popular_imageList))
         popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,search_titleList,search_imageList,latest_titleList,latest_imageList))
-        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList,search_titleList,search_imageList))
+        #latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList,search_titleList,search_imageList))
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
@@ -74,7 +74,7 @@ class Window(QMainWindow):
         
     def load_resources(self,num_loops,images,titles):
         titleList,imgList = [],[]
-        title_size = [100,50]
+        title_size = [100,20]
 
         for i in  range(num_loops):
             #Loading image
@@ -83,7 +83,11 @@ class Window(QMainWindow):
             img = img.scaled(100,150)
             #Setting button properties
             label_title = QPushButton()
-            label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
+            label_title.setStyleSheet("""QPushButton {
+    background-color: red;
+    border-color: beige;
+    font: bold 14px;
+}""")
             label_title.setFixedSize(title_size[0],title_size[1])
             #Adding widgets to a list
             titleList.append(label_title)
