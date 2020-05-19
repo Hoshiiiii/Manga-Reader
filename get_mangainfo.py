@@ -1,8 +1,8 @@
 from bs4 import BeautifulSoup as bs
 import requests
 import re
+import time
 def get_latest():
-
   title = []
   site = []
   img = []
@@ -10,8 +10,11 @@ def get_latest():
   url = "https://m.mangairo.com/manga-list/type-latest/ctg-all/state-all/page-1"
   content = requests.get(url)
   soup = bs(content.content,'html.parser')
-
+  counter = 0
   for cnt in soup.find_all("a",{"class": "tooltip"}):
+    counter+=1
+    if cnt["href"] and counter % 2 == 0:
+        site.append(cnt["href"])
     if cnt.img != None:
         img.append(cnt.img["src"])
         #if len(cnt.img["alt"]) < 18:
@@ -23,7 +26,7 @@ def get_latest():
             #print("index {} on {}".format(index,cnt.img["alt"][17:len(cnt.img["alt"])]))
         #newTitle = cnt.img["alt"][0:17+index] + "\n" + cnt.img["alt"][17+index:len(cnt.img["alt"])]
         #title.append(newTitle)
-  return img,title
+  return img,title,site
 def get_popular(): 
   title = []
   site = []
@@ -32,14 +35,17 @@ def get_popular():
   url = "https://m.mangairo.com/manga-list/type-topview/ctg-all/state-all/page-1"
   content = requests.get(url)
   soup = bs(content.content,'html.parser')
-
+  counter = 0
   for cnt in soup.find_all("a",{"class": "tooltip"}):
+    counter+=1
+    if cnt["href"] and counter % 2 == 0:
+        site.append(cnt["href"])
     if cnt.img != None:
         img.append(cnt.img["src"])
         title.append(cnt.img["alt"])
         continue
         
-  return img,title
+  return img,title,site
 def get_search(search_input):
   title = []
   site = []

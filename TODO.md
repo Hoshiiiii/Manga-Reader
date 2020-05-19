@@ -2,11 +2,9 @@
 # DO
 * Chapter Lists ( Labels/Buttons )
 * Make Chapter Labels clickable
-<<<<<<< HEAD
 * Load images in a chapter
 * Actual Reading
-=======
->>>>>>> d380615233f9934fd995e48ab5150241ea6ce3fc
+* Different load_resource for search input
 * Auto create .txt file containing the links for viewed manga (To load a manga faster)
 * Download button
 * Limit title length and add \n if > 18

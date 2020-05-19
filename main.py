@@ -14,9 +14,8 @@ start = time.time()
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-        latest_images, latest_titles = get_latest()
-        popular_images, popular_titles = get_popular()
-        search_images, search_titles,search_site,search_details = get_search("Kimetsu")
+        latest_images, latest_titles,latest_sites = get_latest()
+        popular_images, popular_titles,popular_sites = get_popular()
         self.user = ctypes.windll.user32
         
 
@@ -41,18 +40,16 @@ class Window(QMainWindow):
         #Variable declartion for properties
         horizontal_space = 100
         gridLayout.setHorizontalSpacing(horizontal_space)
+        self.search_titleList,self.search_imageList = [],[]
         #Setting the main widgets through functions
         popular,latest,search_box,search_button = self.buttons_init()
         #Main - Load resources
-        list1,list2 = [],[]
-        latest_titleList, latest_imageList = self.load_resources(20,latest_images,latest_titles)
-        popular_titleList, popular_imageList = self.load_resources(20,popular_images,popular_titles)
-        search_titleList, search_imageList = self.load_resources(len(search_titles),search_images,search_titles)
-        
+        latest_titleList, latest_imageList,latest_siteList = self.load_resources(20,latest_images,latest_titles,latest_sites)
+        popular_titleList, popular_imageList,popular_siteList = self.load_resources(20,popular_images,popular_titles,popular_sites)
         #Setting up for button clicks
-        #search_button.clicked.connect(functools.partial(self.apply_resources,len(search_titles),search_titleList,search_imageList,gridLayout,latest_titleList,latest_imageList,popular_titleList,popular_imageList))
-        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,search_titleList,search_imageList,latest_titleList,latest_imageList))
-        #latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList,search_titleList,search_imageList))
+        search_button.clicked.connect(functools.partial(self.load_search_resources,search_box,gridLayout,latest_titleList,latest_imageList,popular_titleList,popular_imageList))
+        popular.clicked.connect(functools.partial(self.apply_resources,20,popular_titleList,popular_imageList,gridLayout,latest_titleList,latest_imageList))
+        latest.clicked.connect(functools.partial(self.apply_resources,20,latest_titleList,latest_imageList,gridLayout,popular_titleList,popular_imageList))
         self.setCentralWidget(self.centralwidget)
         self.showMaximized()
         self.show()
@@ -72,11 +69,13 @@ class Window(QMainWindow):
         return label
             
         
-    def load_resources(self,num_loops,images,titles):
-        titleList,imgList = [],[]
+    def load_resources(self,num_loops,images,titles,sites):
+        titleList,imgList,siteList = [],[],[]
         title_size = [100,20]
 
         for i in  range(num_loops):
+            #Appending urls
+            siteList.append(sites[i])
             #Loading image
             image_label = QtWidgets.QLabel(self.centralwidget)
             img = self.loadImage(images[i])
@@ -95,40 +94,19 @@ class Window(QMainWindow):
             #Applying image and text
             titleList[i].setText(titles[i])
             image_label.setPixmap(QPixmap(img))
-        return titleList, imgList
-    def load_search_resources(self,num_loops,images,titles,gridLayout,clear_label,clear_img):
-        titleList,imgList = [],[]
-        title_size = [100,50]
-
-        for i in  range(num_loops):
-            #Loading image
-            image_label = QtWidgets.QLabel(self.centralwidget)
-            img = self.loadImage(images[i])
-            img = img.scaled(100,150)
-            #Setting button properties
-            label_title = QPushButton()
-            label_title.setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0); color : white; }");
-            label_title.setFixedSize(title_size[0],title_size[1])
-            #Adding widgets to a list
-            titleList.append(label_title)
-            imgList.append(image_label)
-            #Applying image and text
-            titleList[i].setText(titles[i])
-            image_label.setPixmap(QPixmap(img))
-        self.apply_resources(num_loops,titleList,imgList,gridLayout,clear_label,clear_img)
-        return titleList, imgList
-        #popular.clicked.connect(functools.partial(self.on_click,20,popular_images,imgList))
-    def apply_resources(self,num_loops,titleList,imgList,gridLayout,clear_label,clear_img,clear_label2,clear_img2):
+        return titleList, imgList,siteList
+   
+    def apply_resources(self,num_loops,titleList,imgList,gridLayout,clear_label,clear_img):
         for x in range(len(clear_label)):
             clear_label[x].hide()
             clear_img[x].hide()            
-        for x in range(len(clear_label2)):
-            clear_label2[x].hide()
-            clear_img2[x].hide()
+        for x in range(len(self.search_imageList)):
+         self.search_imageList[x].setParent(None)
+         self.search_titleList[x].setParent(None)
         #Declaring variables for layout properties
         photo_horizontal, title_horizontal = 0,0,
-        title_vertical = 1
-        photo_vertical = 2
+        title_vertical = 0
+        photo_vertical = 1
         rowcol_stretch = 100
 
         for i in  range(num_loops):
@@ -148,10 +126,39 @@ class Window(QMainWindow):
             imgList[i].show()
 
             title_horizontal += 1
-            photo_horizontal += 1
-    def load_search(self,search_input):
-        print("press f")
-        print(search_input.text())     
+            photo_horizontal += 1    
+    def load_search_resources(self,search_input,gridLayout,clear_label,clear_img,clear_label2,clear_img2):
+        for x in range(len(self.search_titleList)):
+         self.search_imageList[x].setParent(None)
+         self.search_titleList[x].setParent(None)
+        for x in range(len(clear_label)):
+            clear_label[x].hide()
+            clear_img[x].hide()  
+            clear_label2[x].hide()
+            clear_img2[x].hide()   
+        search_images, search_titles,search_sites,search_details = get_search(search_input.text())
+
+        self.search_titleList, self.search_imageList,search_sites = self.load_resources(len(search_titles),search_images,search_titles,search_sites)
+        photo_horizontal, title_horizontal = 0,0,
+        title_vertical = 0
+        photo_vertical = 1
+        rowcol_stretch = 100
+
+        for i in  range(len(self.search_titleList)):
+
+            gridLayout.setRowStretch(i,150)
+            gridLayout.setColumnStretch(i,100)
+            if title_horizontal >= 5:
+                title_vertical += 2
+                photo_vertical += 2
+                title_horizontal , photo_horizontal = 0,0
+
+            gridLayout.addWidget(self.search_titleList[i],title_vertical,title_horizontal)
+
+            gridLayout.addWidget(self.search_imageList[i], photo_vertical, photo_horizontal)
+
+            title_horizontal += 1
+            photo_horizontal += 1         
     def buttons_init(self):
         searchbox_size = [100,20]
 
