@@ -3,6 +3,7 @@ import requests
 import re
 import time
 def get_latest():
+  start = time.time()
   title = []
   site = []
   img = []
@@ -64,6 +65,17 @@ def get_search(search_input):
       details.append(word)
   return img,title,site,details
 
+def get_manga(site):
+  url = site
+  content = requests.get(url)
+  soup = bs(content.content,'html.parser')
+  chap_url,description = [],[]
+  img = ""
+  for cnt in soup.find_all("a", {"class":"chapter-name text-nowrap"}):
+    chap_url.append(cnt["href"])
+  for cnt in soup.find_all("meta",{"property":"og:image"}):
+    img = cnt["content"]
+  for cnt in soup.find_all("div",{"class":"panel-story-info-description"}):
+    description.append(cnt.text)
 
-
-
+  return  chap_url,img,description
