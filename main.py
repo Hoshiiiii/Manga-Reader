@@ -6,16 +6,18 @@ from bs4 import BeautifulSoup as bs
 from urllib.request import Request, urlopen
 from get_mangainfo import get_latest,get_popular, get_search,get_manga
 import ctypes, functools,requests, time,sys
+from user_agents import USER_AGENTS
+import random
 start = time.time()
-
-
-
-           
+     
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
+        print("start test")
         latest_images, latest_titles,latest_sites = get_latest()
+        print("F")
         popular_images, popular_titles,popular_sites = get_popular()
+        print("starting?")
         self.user = ctypes.windll.user32
         self.rows,self.columns = 0,0
 
@@ -44,7 +46,7 @@ class Window(QMainWindow):
         
         #Setting the main widgets through functions
         popular,latest,search_box,search_button = self.buttons_init()
-        
+        self.clicked_manga = []
         #Main - Load resources
         self.latest_titleList, self.latest_imageList,latest_siteList = self.load_resources(20,latest_images,latest_titles,latest_sites,gridLayout)
         self.popular_titleList, self.popular_imageList,popular_siteList = self.load_resources(20,popular_images,popular_titles,popular_sites,gridLayout)
@@ -57,12 +59,13 @@ class Window(QMainWindow):
         self.showMaximized()
         self.show()
 
-    def loadImage(self,image_url):
+    def loadImage(self,image_url,scaleW,scaleH):
         img = QImage()
-        req = Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = Request(image_url, headers={'User-Agent': USER_AGENTS[random.randint(0,len(USER_AGENTS))]})
         data = urlopen(req).read()
-        img.loadFromData(data)  
-        img = img.scaled(100,150)
+        img.loadFromData(data)
+        if not scaleW == 0:  
+            img = img.scaled(scaleW,scaleH)
         return img
 
     def localImage(self,source,label,scaleW,scaleH):
@@ -81,8 +84,7 @@ class Window(QMainWindow):
             siteList.append(sites[i])
             #Loading image
             image_label = QtWidgets.QLabel(self.centralwidget)
-            img = self.loadImage(images[i])
-            img = img.scaled(100,150)
+            img = self.loadImage(images[i],100,150)
             #Setting button properties
             label_title = QPushButton()
             label_title.setStyleSheet("""QPushButton {
@@ -104,15 +106,17 @@ class Window(QMainWindow):
         if condition == "popular":
             for x in range(len(self.latest_imageList)):
                 self.latest_imageList[x].hide()
-                self.latest_titleList[x].hide() 
+                self.latest_titleList[x].hide()
         else:
             for x in range(len(self.latest_imageList)):
                 self.popular_imageList[x].hide()
                 self.popular_titleList[x].hide() 
 
-        for x in range(len(self.search_imageList)):
-         self.search_imageList[x].setParent(None)
-         self.search_titleList[x].setParent(None)
+        self.delete_widget(self.search_imageList)
+        self.delete_widget(self.search_titleList)
+        self.delete_widget(self.clicked_manga)
+
+
         #Declaring variables for layout properties
         photo_horizontal, title_horizontal = 0,0,
         title_vertical,photo_vertical = 0,1
@@ -126,12 +130,12 @@ class Window(QMainWindow):
         self.clear_layout()
 
         #Add new widgets
-        chap_url,img,description = get_manga(site)
-        title_label = QtWidgets.QLabel(self.centralwidget)
-        title_label.setText(title)
-        image_label = QtWidgets.QLabel(self.centralwidget)
-        image = self.loadImage(img)
-        image_label.setPixmap(QPixmap(image))
+        chap_url,img,description,chap_name = get_manga(site)
+        clicked_title = QtWidgets.QLabel(self.centralwidget)
+        clicked_title.setText(title)
+        clicked_image = QtWidgets.QLabel(self.centralwidget)
+        image = self.loadImage(img,0,0)
+        clicked_image.setPixmap(QPixmap(image))
 
         #Adjust widgets 
         rowcol_stretch = 100
@@ -140,11 +144,19 @@ class Window(QMainWindow):
         gridLayout.setRowStretch(rows,150)
         gridLayout.setColumnStretch(columns,100)
 
-        gridLayout.addWidget(title_label,rows,columns)
-        
-        gridLayout.addWidget(image_label, rows+1,columns)
-        title_label.show()
-        image_label.show()
+        gridLayout.addWidget(clicked_title,rows,columns)
+        rows+=1
+        gridLayout.addWidget(clicked_image, rows,columns)
+        for x in chap_name:
+            rows+=1
+            self.clicked_chap = QPushButton(self)
+            self.setButtonProperties(clicked_chap,"color:black;background-color:white;",150,50,x)
+
+            gridLayout.addWidget(clicked_chap,rows,columns)
+            self.clicked_manga.append(clicked_chap)
+        self.clicked_manga.append(clicked_title)
+        self.clicked_manga.append(clicked_image)
+
     def apply_searchResources(self,search_input,gridLayout):
         for x in range(len(self.search_titleList)):
          self.search_imageList[x].setParent(None)
@@ -153,7 +165,9 @@ class Window(QMainWindow):
             self.popular_titleList[x].hide()
             self.popular_imageList[x].hide()  
             self.latest_titleList[x].hide()
-            self.latest_imageList[x].hide()   
+            self.latest_imageList[x].hide()  
+            self.clicked_title.show()
+            self.clicked_image.show() 
         search_images, search_titles,search_sites,search_details = get_search(search_input.text())
 
         self.search_titleList, self.search_imageList,search_sites = self.load_resources(len(search_titles),search_images,search_titles,search_sites,gridLayout)
@@ -164,30 +178,31 @@ class Window(QMainWindow):
 
      
         self.adjust_grid(len(self.search_titleList),gridLayout,self.search_titleList,self.search_imageList,photo_horizontal,title_horizontal,title_vertical,photo_vertical,rowcol_stretch)  
+    def setButtonProperties(self,button_name,button_style,button_w,button_h,button_text):
+        button_name.setStyleSheet(button_style);
+        button_name.setFixedSize(button_w,button_h)
+        #button_name.setGeometry(geoX,geoY,0,0)
+        button_name.setText(button_text) 
     def buttons_init(self):
         searchbox_size = [100,20]
 
         popular = QPushButton(self)
-        popular.setStyleSheet("background-color:white;");
-        popular.setFixedSize(50,20)
+        self.setButtonProperties(popular,"background-color:white;",50,20,"Popular Button")
         popular.setGeometry(self.user.GetSystemMetrics(0) - 80,50,0,0)
-        popular.setText("Popular Button")        
 
         latest = QPushButton(self)
-        latest.setStyleSheet("background-color:white;");
-        latest.setFixedSize(50,20)
+        self.setButtonProperties(latest,"background-color:white;",50,20,"Latest Button")
         latest.setGeometry(self.user.GetSystemMetrics(0) - 80,100,0,0)
-        latest.setText("Latest Button")
 
         searchBox = QLineEdit(self)
         searchBox.setStyleSheet("background-color: green;")
         searchBox.setGeometry(self.user.GetSystemMetrics(0) - 200,10,searchbox_size[0],searchbox_size[1])
 
         search_button = QPushButton(self)
-        search_button.setStyleSheet("background-color:white;");
-        search_button.setFixedSize(50,20)
+        self.setButtonProperties(search_button,"background-color:white;",50,20,"Search Button")
         search_button.setGeometry(self.user.GetSystemMetrics(0) - 80,10,0,0)
         return popular,latest,searchBox,search_button
+
     def adjust_grid(self,loops,gridLayout,titleList,imgList,photo_horizontal,title_horizontal,title_vertical,photo_vertical,rowcol_stretch):
         for i in  range(loops):
             gridLayout.setRowStretch(i,150)
@@ -206,6 +221,10 @@ class Window(QMainWindow):
 
             title_horizontal += 1
             photo_horizontal += 1  
+    def delete_widget(self,widget_list):
+        for x in range(len(widget_list)):
+            widget_list[x].setParent(None)
+        widget_list = []
     def clear_layout(self):
         for x in range(len(self.search_imageList)):
          self.search_imageList[x].setParent(None)
