@@ -6,18 +6,16 @@ from bs4 import BeautifulSoup as bs
 from urllib.request import Request, urlopen
 from get_mangainfo import get_latest,get_popular, get_search,get_manga
 import ctypes, functools,requests, time,sys
-from user_agents import USER_AGENTS
 import random
 start = time.time()
      
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-        print("start test")
         latest_images, latest_titles,latest_sites = get_latest()
-        print("F")
+        print("start test")
+
         popular_images, popular_titles,popular_sites = get_popular()
-        print("starting?")
         self.user = ctypes.windll.user32
         self.rows,self.columns = 0,0
 
@@ -30,7 +28,7 @@ class Window(QMainWindow):
         self.resize(self.user.GetSystemMetrics(0), self.user.GetSystemMetrics(1))
         
         #Setting up Layout and Scroll area properties
-        layout = QtWidgets.QHBoxLayout(self)
+        layout = QtWidgets.QHBoxLayout()
         scrollArea = QtWidgets.QScrollArea(self)
         scrollArea.setWidgetResizable(True)
         scrollAreaWidgetContents = QtWidgets.QWidget()
@@ -61,9 +59,8 @@ class Window(QMainWindow):
 
     def loadImage(self,image_url,scaleW,scaleH):
         img = QImage()
-        req = Request(image_url, headers={'User-Agent': USER_AGENTS[random.randint(0,len(USER_AGENTS))]})
-        data = urlopen(req).read()
-        img.loadFromData(data)
+
+        img.loadFromData(requests.get(image_url,proxies={"http":"http://myproxy:3129"}).content)
         if not scaleW == 0:  
             img = img.scaled(scaleW,scaleH)
         return img
@@ -112,9 +109,9 @@ class Window(QMainWindow):
                 self.popular_imageList[x].hide()
                 self.popular_titleList[x].hide() 
 
-        self.delete_widget(self.search_imageList)
-        self.delete_widget(self.search_titleList)
-        self.delete_widget(self.clicked_manga)
+        self.search_imageList = self.delete_widget(self.search_imageList)
+        self.search_titleList = self.delete_widget(self.search_titleList)
+        self.clicked_manga = self.delete_widget(self.clicked_manga)
 
 
         #Declaring variables for layout properties
@@ -149,10 +146,10 @@ class Window(QMainWindow):
         gridLayout.addWidget(clicked_image, rows,columns)
         for x in chap_name:
             rows+=1
-            self.clicked_chap = QPushButton(self)
+            clicked_chap = QPushButton(self)
             self.setButtonProperties(clicked_chap,"color:black;background-color:white;",150,50,x)
-
             gridLayout.addWidget(clicked_chap,rows,columns)
+            clicked_chap.show()
             self.clicked_manga.append(clicked_chap)
         self.clicked_manga.append(clicked_title)
         self.clicked_manga.append(clicked_image)
@@ -166,8 +163,6 @@ class Window(QMainWindow):
             self.popular_imageList[x].hide()  
             self.latest_titleList[x].hide()
             self.latest_imageList[x].hide()  
-            self.clicked_title.show()
-            self.clicked_image.show() 
         search_images, search_titles,search_sites,search_details = get_search(search_input.text())
 
         self.search_titleList, self.search_imageList,search_sites = self.load_resources(len(search_titles),search_images,search_titles,search_sites,gridLayout)
@@ -225,6 +220,7 @@ class Window(QMainWindow):
         for x in range(len(widget_list)):
             widget_list[x].setParent(None)
         widget_list = []
+        return widget_list
     def clear_layout(self):
         for x in range(len(self.search_imageList)):
          self.search_imageList[x].setParent(None)
